@@ -1,0 +1,349 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Pasarela Service",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/pagos": {
+      "post": {
+        "summary": "Crear Pago",
+        "operationId": "crear_pago_pagos_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transacción creada y cobro exitoso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransaccionResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Pago rechazado o tipo de tarjeta no soportado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Empresa no encontrada o no autorizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error de validación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tesoreria/reporte": {
+      "get": {
+        "summary": "Reporte de transacciones no liquidadas",
+        "operationId": "reporte_tesoreria_reporte_get",
+        "parameters": [
+          {
+            "name": "empresa_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Empresa Id"
+            }
+          },
+          {
+            "name": "fecha_inicio",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "type": "string", "format": "date" },
+                { "type": "null" }
+              ],
+              "title": "Fecha Inicio"
+            }
+          },
+          {
+            "name": "fecha_fin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "type": "string", "format": "date" },
+                { "type": "null" }
+              ],
+              "title": "Fecha Fin"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reporte de transacciones exitosas no liquidadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReporteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "fecha_inicio debe ser menor o igual a fecha_fin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Empresa no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error de validación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tesoreria/liquidar": {
+      "post": {
+        "summary": "Liquidar transacciones",
+        "operationId": "liquidar_tesoreria_liquidar_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiquidarRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transacciones liquidadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiquidarResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Empresa no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Error de validación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PagoRequest": {
+        "type": "object",
+        "title": "PagoRequest",
+        "required": ["usuario", "tipo_tarjeta", "numero_tarjeta", "valor", "empresa_id"],
+        "properties": {
+          "usuario": {
+            "type": "string",
+            "title": "Usuario"
+          },
+          "tipo_tarjeta": {
+            "type": "string",
+            "title": "Tipo Tarjeta",
+            "description": "Visa o Mastercard"
+          },
+          "numero_tarjeta": {
+            "type": "string",
+            "title": "Numero Tarjeta"
+          },
+          "valor": {
+            "type": "number",
+            "title": "Valor"
+          },
+          "empresa_id": {
+            "type": "integer",
+            "title": "Empresa Id"
+          }
+        }
+      },
+      "LiquidarRequest": {
+        "type": "object",
+        "title": "LiquidarRequest",
+        "required": ["empresa_id", "transaccion_ids"],
+        "properties": {
+          "empresa_id": {
+            "type": "integer",
+            "title": "Empresa Id"
+          },
+          "transaccion_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Transaccion Ids"
+          }
+        }
+      },
+      "TransaccionResponse": {
+        "type": "object",
+        "title": "TransaccionResponse",
+        "required": ["id", "usuario", "tipo_tarjeta", "numero_tarjeta", "valor", "empresa_id", "estado_pago"],
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "usuario": { "type": "string", "title": "Usuario" },
+          "tipo_tarjeta": { "type": "string", "title": "Tipo Tarjeta" },
+          "numero_tarjeta": { "type": "string", "title": "Numero Tarjeta" },
+          "valor": { "type": "number", "title": "Valor" },
+          "empresa_id": { "type": "integer", "title": "Empresa Id" },
+          "estado_pago": { "type": "string", "title": "Estado Pago" },
+          "estado_cobro": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Estado Cobro"
+          },
+          "fecha": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Fecha"
+          }
+        }
+      },
+      "TransaccionItem": {
+        "type": "object",
+        "title": "TransaccionItem",
+        "required": ["id", "usuario", "tipo_tarjeta", "numero_tarjeta", "valor", "estado_pago", "estado_cobro"],
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "usuario": { "type": "string", "title": "Usuario" },
+          "tipo_tarjeta": { "type": "string", "title": "Tipo Tarjeta" },
+          "numero_tarjeta": { "type": "string", "title": "Numero Tarjeta" },
+          "valor": { "type": "number", "title": "Valor" },
+          "estado_pago": { "type": "string", "title": "Estado Pago" },
+          "estado_cobro": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Estado Cobro"
+          },
+          "fecha": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Fecha"
+          }
+        }
+      },
+      "ReporteResponse": {
+        "type": "object",
+        "title": "ReporteResponse",
+        "required": ["empresa_id", "empresa_nombre", "total", "transacciones"],
+        "properties": {
+          "empresa_id": { "type": "integer", "title": "Empresa Id" },
+          "empresa_nombre": { "type": "string", "title": "Empresa Nombre" },
+          "total": { "type": "number", "title": "Total" },
+          "transacciones": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TransaccionItem" },
+            "title": "Transacciones"
+          }
+        }
+      },
+      "LiquidarResponse": {
+        "type": "object",
+        "title": "LiquidarResponse",
+        "required": ["cantidad_liquidada", "mensaje"],
+        "properties": {
+          "cantidad_liquidada": { "type": "integer", "title": "Cantidad Liquidada" },
+          "mensaje": { "type": "string", "title": "Mensaje" }
+        }
+      },
+      "HTTPError": {
+        "type": "object",
+        "title": "HTTPError",
+        "properties": {
+          "detail": { "type": "string", "title": "Detail" }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "title": "ValidationError",
+        "required": ["loc", "msg", "type"],
+        "properties": {
+          "loc": {
+            "type": "array",
+            "items": {
+              "anyOf": [{ "type": "string" }, { "type": "integer" }]
+            },
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
+        }
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "title": "HTTPValidationError",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "title": "Detail"
+          }
+        }
+      }
+    }
+  }
+}
