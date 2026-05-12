@@ -55,3 +55,35 @@ def reporte(
             for t in transacciones
         ],
     }
+
+
+class LiquidarRequest(BaseModel):
+    empresa_id: int
+    transaccion_ids: List[int]
+
+
+@router.post("/tesoreria/liquidar")
+def liquidar(req: LiquidarRequest, db: Session = Depends(get_db)):
+    empresa = db.query(Empresa).filter(Empresa.id == req.empresa_id).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+
+    transacciones = (
+        db.query(Transaccion)
+        .filter(
+            Transaccion.id.in_(req.transaccion_ids),
+            Transaccion.empresa_id == req.empresa_id,
+            Transaccion.estado_pago == "No Liquidado",
+            Transaccion.estado_cobro == "Exitoso",
+        )
+        .all()
+    )
+
+    for t in transacciones:
+        t.estado_pago = "Liquidado"
+    db.commit()
+
+    return {
+        "cantidad_liquidada": len(transacciones),
+        "mensaje": f"Se liquidaron {len(transacciones)} transacciones exitosamente",
+    }
