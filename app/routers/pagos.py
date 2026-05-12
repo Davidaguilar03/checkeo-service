@@ -82,4 +82,3 @@ def crear_pago(pago: PagoRequest, db: Session = Depends(get_db)):
     transaccion.estado_cobro = "No Exitoso"
     db.commit()
     raise HTTPException(status_code=402, detail="Pago rechazado")
-t
