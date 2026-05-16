@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 from app.db.database import get_db
 from app.models.models import Empresa, Transaccion
+from app.logger import log
 
 load_dotenv()
 
@@ -25,8 +26,11 @@ class PagoRequest(BaseModel):
 
 @router.post("/pagos", status_code=201)
 def crear_pago(pago: PagoRequest, db: Session = Depends(get_db)):
+    log("INFO", "Solicitud de pago recibida", {"usuario": pago.usuario, "tipo_tarjeta": pago.tipo_tarjeta, "valor": pago.valor, "empresa_id": pago.empresa_id})
+
     empresa = db.query(Empresa).filter(Empresa.id == pago.empresa_id).first()
     if not empresa or empresa.autorizada != 1:
+        log("ERROR", "Empresa no encontrada o no autorizada", {"empresa_id": pago.empresa_id})
         raise HTTPException(status_code=404, detail="Empresa no encontrada o no autorizada")
 
     transaccion = Transaccion(
@@ -41,6 +45,7 @@ def crear_pago(pago: PagoRequest, db: Session = Depends(get_db)):
     db.add(transaccion)
     db.commit()
     db.refresh(transaccion)
+    log("INFO", "Transacción registrada", {"transaccion_id": transaccion.id})
 
     tipo = pago.tipo_tarjeta.lower()
     if tipo == "visa":
@@ -50,27 +55,24 @@ def crear_pago(pago: PagoRequest, db: Session = Depends(get_db)):
     else:
         transaccion.estado_cobro = "No Exitoso"
         db.commit()
+        log("ERROR", "Tipo de tarjeta no soportado", {"tipo_tarjeta": pago.tipo_tarjeta})
         raise HTTPException(status_code=402, detail="Tipo de tarjeta no soportado")
 
     valido = False
     try:
-        response = httpx.get(
-            url,
-            params={"numero_tarjeta": pago.numero_tarjeta, "usuario": pago.usuario},
-            timeout=10.0,
-        )
+        response = httpx.get(url, params={"numero_tarjeta": pago.numero_tarjeta, "usuario": pago.usuario}, timeout=10.0)
         data = response.json()
-        
         valido = data.get("valid", data.get("valido", False))
-        
+        log("INFO", f"Respuesta de {tipo}", {"valido": valido})
     except Exception as e:
-        print(f"Error al conectar con el microservicio: {e}")
+        log("ERROR", f"Error al conectar con servicio {tipo}", {"error": str(e)})
         valido = False
 
     if valido:
         transaccion.estado_cobro = "Exitoso"
         db.commit()
         db.refresh(transaccion)
+        log("INFO", "Pago exitoso", {"transaccion_id": transaccion.id, "usuario": pago.usuario})
         return {
             "id": transaccion.id,
             "usuario": transaccion.usuario,
@@ -85,4 +87,5 @@ def crear_pago(pago: PagoRequest, db: Session = Depends(get_db)):
 
     transaccion.estado_cobro = "No Exitoso"
     db.commit()
+    log("ERROR", "Pago rechazado", {"transaccion_id": transaccion.id, "usuario": pago.usuario})
     raise HTTPException(status_code=402, detail="Pago rechazado")
