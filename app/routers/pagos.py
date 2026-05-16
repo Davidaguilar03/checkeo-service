@@ -59,8 +59,12 @@ def crear_pago(pago: PagoRequest, db: Session = Depends(get_db)):
             params={"numero_tarjeta": pago.numero_tarjeta, "usuario": pago.usuario},
             timeout=10.0,
         )
-        valido = response.json().get("valido", False)
-    except Exception:
+        data = response.json()
+        
+        valido = data.get("valid", data.get("valido", False))
+        
+    except Exception as e:
+        print(f"Error al conectar con el microservicio: {e}")
         valido = False
 
     if valido:
