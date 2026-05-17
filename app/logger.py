@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 
-LOG_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "logs", "checkeo.log")
+LOG_PATH = os.path.join("logs", "checkeo.log")
 
 def log(nivel: str, mensaje: str, extra: dict = {}):
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
