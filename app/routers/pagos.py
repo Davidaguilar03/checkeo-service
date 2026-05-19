@@ -14,6 +14,7 @@ router = APIRouter()
 
 VISA_SERVICE_URL = os.getenv("VISA_SERVICE_URL", "http://localhost:8001")
 MASTERCARD_SERVICE_URL = os.getenv("MASTERCARD_SERVICE_URL", "http://localhost:8002")
+NU_SERVICE_URL = os.getenv("NU_SERVICE_URL", "https://nu-service.onrender.com")
 
 
 class PagoRequest(BaseModel):
@@ -22,6 +23,7 @@ class PagoRequest(BaseModel):
     numero_tarjeta: str
     valor: float
     empresa_id: int
+    csv: str | None = None
 
 
 @router.post("/pagos", status_code=201)
@@ -48,25 +50,46 @@ def crear_pago(pago: PagoRequest, db: Session = Depends(get_db)):
     log("INFO", "Transacción registrada", {"transaccion_id": transaccion.id})
 
     tipo = pago.tipo_tarjeta.lower()
+    valido = False
     if tipo == "visa":
         url = f"{VISA_SERVICE_URL}/visa/validar"
+        try:
+            response = httpx.get(url, params={"numero_tarjeta": pago.numero_tarjeta, "usuario": pago.usuario}, timeout=10.0)
+            data = response.json()
+            valido = data.get("valid", data.get("valido", False))
+            log("INFO", f"Respuesta de {tipo}", {"valido": valido})
+        except Exception as e:
+            log("ERROR", f"Error al conectar con servicio {tipo}", {"error": str(e)})
     elif tipo == "mastercard":
         url = f"{MASTERCARD_SERVICE_URL}/mastercard/validar"
+        try:
+            response = httpx.get(url, params={"numero_tarjeta": pago.numero_tarjeta, "usuario": pago.usuario}, timeout=10.0)
+            data = response.json()
+            valido = data.get("valid", data.get("valido", False))
+            log("INFO", f"Respuesta de {tipo}", {"valido": valido})
+        except Exception as e:
+            log("ERROR", f"Error al conectar con servicio {tipo}", {"error": str(e)})
+    elif tipo == "nubank":
+        url = f"{NU_SERVICE_URL}/validate"
+        try:
+            response = httpx.post(url, json={"number": pago.numero_tarjeta, "csv": pago.csv, "token": 2000}, timeout=10.0)
+            text = response.text.strip()
+            if text == "VALID":
+                valido = True
+            else:
+                try:
+                    data = response.json()
+                    valido = data.get("valid", data.get("valido", False))
+                except Exception:
+                    valido = False
+            log("INFO", "Respuesta de nubank", {"valido": valido})
+        except Exception as e:
+            log("ERROR", "Error al conectar con servicio nubank", {"error": str(e)})
     else:
         transaccion.estado_cobro = "No Exitoso"
         db.commit()
         log("ERROR", "Tipo de tarjeta no soportado", {"tipo_tarjeta": pago.tipo_tarjeta})
         raise HTTPException(status_code=402, detail="Tipo de tarjeta no soportado")
-
-    valido = False
-    try:
-        response = httpx.get(url, params={"numero_tarjeta": pago.numero_tarjeta, "usuario": pago.usuario}, timeout=10.0)
-        data = response.json()
-        valido = data.get("valid", data.get("valido", False))
-        log("INFO", f"Respuesta de {tipo}", {"valido": valido})
-    except Exception as e:
-        log("ERROR", f"Error al conectar con servicio {tipo}", {"error": str(e)})
-        valido = False
 
     if valido:
         transaccion.estado_cobro = "Exitoso"
