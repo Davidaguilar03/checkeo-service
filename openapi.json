@@ -30,22 +30,62 @@
               }
             }
           },
-          "402": {
-            "description": "Pago rechazado o tipo de tarjeta no soportado",
+          "400": {
+            "description": "Solicitud invalida (por ejemplo, tipo de tarjeta no soportado o CSV faltante)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPError"
+                  "$ref": "#/components/schemas/PagosErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Empresa no autorizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagosErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Pago rechazado por el proveedor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagosErrorResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Empresa no encontrada o no autorizada",
+            "description": "Empresa no encontrada",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPError"
+                  "$ref": "#/components/schemas/PagosErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Respuesta invalida o error HTTP del proveedor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagosErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Proveedor no disponible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagosErrorResponse"
                 }
               }
             }
@@ -209,7 +249,7 @@
           "tipo_tarjeta": {
             "type": "string",
             "title": "Tipo Tarjeta",
-            "description": "Visa o Mastercard"
+            "description": "Visa, Mastercard o Nubank"
           },
           "numero_tarjeta": {
             "type": "string",
@@ -222,6 +262,11 @@
           "empresa_id": {
             "type": "integer",
             "title": "Empresa Id"
+          },
+          "csv": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "CSV",
+            "description": "Requerido solo para Nubank"
           }
         }
       },
@@ -246,12 +291,12 @@
       "TransaccionResponse": {
         "type": "object",
         "title": "TransaccionResponse",
-        "required": ["id", "usuario", "tipo_tarjeta", "numero_tarjeta", "valor", "empresa_id", "estado_pago"],
+        "required": ["id", "usuario", "tipo_tarjeta", "numero_tarjeta", "valor", "empresa_id", "estado_pago", "estado_cobro", "fecha", "code", "message", "provider"],
         "properties": {
           "id": { "type": "integer", "title": "Id" },
           "usuario": { "type": "string", "title": "Usuario" },
           "tipo_tarjeta": { "type": "string", "title": "Tipo Tarjeta" },
-          "numero_tarjeta": { "type": "string", "title": "Numero Tarjeta" },
+          "numero_tarjeta": { "type": "string", "title": "Numero Tarjeta", "description": "Numero enmascarado" },
           "valor": { "type": "number", "title": "Valor" },
           "empresa_id": { "type": "integer", "title": "Empresa Id" },
           "estado_pago": { "type": "string", "title": "Estado Pago" },
@@ -262,7 +307,32 @@
           "fecha": {
             "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Fecha"
+          },
+          "code": { "type": "string", "title": "Code" },
+          "message": { "type": "string", "title": "Message" },
+          "provider": { "type": "string", "title": "Provider" }
+        }
+      },
+      "PagosErrorDetail": {
+        "type": "object",
+        "title": "PagosErrorDetail",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string", "title": "Code" },
+          "message": { "type": "string", "title": "Message" },
+          "provider": { "type": "string", "title": "Provider" },
+          "details": {
+            "type": "object",
+            "title": "Details",
+            "additionalProperties": true
           }
+        }
+      },
+      "PagosErrorResponse": {
+        "type": "object",
+        "title": "PagosErrorResponse",
+        "properties": {
+          "detail": { "$ref": "#/components/schemas/PagosErrorDetail" }
         }
       },
       "TransaccionItem": {
