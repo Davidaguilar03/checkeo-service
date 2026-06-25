@@ -210,6 +210,7 @@ Ticketeo/
 
 ## Autor
 
-Desarrollado por [**Oscar Roa**](https://github.com/OscarRoa34) — Ingeniería de Sistemas, UPTC.
+Desarrollado por 
+[**David Aguilar**](https://github.com/Davidaguilar03) — Ingeniería de Sistemas, UPTC.
+[**Oscar Roa**](https://github.com/OscarRoa34) — Ingeniería de Sistemas, UPTC.
 
-Microservicio de pasarela de pagos: [`checkeo-service`](https://github.com/Davidaguilar03/checkeo-service) por [David Aguilar](https://github.com/Davidaguilar03).
