@@ -236,4 +236,6 @@ Este servicio es consumido por la aplicación principal [**Ticketeo**](https://g
 
 ## Autor
 
-Desarrollado por [**David Aguilar**](https://github.com/Davidaguilar03).
+Desarrollado por 
+[**Oscar Roa**](https://github.com/OscarRoa34).
+[**David Aguilar**](https://github.com/Davidaguilar03).
